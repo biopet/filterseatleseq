@@ -25,5 +25,6 @@ import java.io.File
 
 case class Args(inputFile: File = null,
                 outputFile: File = null,
+                geneColapseOutput: Option[File] = None,
                 intervals: Option[File] = None,
                 fieldMustContain: List[(String, String)] = Nil)
