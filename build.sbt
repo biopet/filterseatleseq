@@ -8,7 +8,8 @@ biopetUrlName := "filterseattleseq"
 
 biopetIsTool := true
 
-mainClass in assembly := Some("nl.biopet.tools.filterseattleseq.FilterSeattleSeq")
+mainClass in assembly := Some(
+  "nl.biopet.tools.filterseattleseq.FilterSeattleSeq")
 
 developers += Developer(id = "ffinfo",
                         name = "Peter van 't Hof",
