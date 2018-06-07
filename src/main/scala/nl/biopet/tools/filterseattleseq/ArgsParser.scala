@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Biopet
+ * Copyright (c) 2018 Biopet
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -31,4 +31,15 @@ class ArgsParser(toolCommand: ToolCommand[Args])
     .required()
     .action((x, c) => c.copy(inputFile = x))
     .text("Seattle seq input file")
+  opt[File]('o', "outputFile")
+    .required()
+    .action((x, c) => c.copy(outputFile = x))
+    .text("Seattle seq output file")
+  opt[File]("intervals")
+    .action((x, c) => c.copy(intervals = Some(x)))
+    .text("Intervals bed file")
+  opt[(String, String)]("fieldMustContain")
+    .action((x, c) => c.copy(fieldMustContain = x :: c.fieldMustContain))
+    .text("Field must contain given text")
+    .valueName("<key>=<text>")
 }
