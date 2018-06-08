@@ -58,6 +58,9 @@ object FilterSeattleSeq extends ToolCommand[Args] {
     val fieldMustContain =
       cmdArgs.fieldMustContain.map(x => (header(x._1), x._2))
 
+    val mustBeBelowFields =
+      cmdArgs.fieldMustbeBelow.map(x => (header(x._1), x._2))
+
     val writer = new PrintWriter(cmdArgs.outputFile)
     val geneCounts = new ListBuffer[(String, String, Int)]()
     writer.println(headerLine)
@@ -73,7 +76,13 @@ object FilterSeattleSeq extends ToolCommand[Args] {
       val mustContain =
         fieldMustContain.forall(x => values(x._1).contains(x._2))
 
-      if (regionCheck && mustContain) {
+      val mustBeBelow = mustBeBelowFields.forall {
+        case (key, cutoff) =>
+          if (values(key) == "NA") true
+          else values(key).toDouble <= cutoff
+      }
+
+      if (regionCheck && mustContain && mustBeBelow) {
         values(genesIds).split(",").foreach { gene =>
           geneCounts.+=((gene, contig, pos))
         }
@@ -84,9 +93,10 @@ object FilterSeattleSeq extends ToolCommand[Args] {
     val geneWriter = cmdArgs.geneColapseOutput.map(new PrintWriter(_))
     geneWriter.foreach { w =>
       w.println("#Gene\tcounts")
-      geneCounts.groupBy(_._1).foreach { case (gene, values) =>
-        val count = values.map(x => (x._2, x._3)).distinct.size
-        w.println(gene + "\t" + count)
+      geneCounts.groupBy(_._1).foreach {
+        case (gene, values) =>
+          val count = values.map(x => (x._2, x._3)).distinct.size
+          w.println(gene + "\t" + count)
       }
     }
 
