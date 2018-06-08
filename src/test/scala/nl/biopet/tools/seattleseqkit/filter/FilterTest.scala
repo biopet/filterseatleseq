@@ -21,8 +21,11 @@
 
 package nl.biopet.tools.seattleseqkit.filter
 
+import java.io.File
+
 import nl.biopet.utils.test.tools.ToolTest
 import org.testng.annotations.Test
+import nl.biopet.utils.io.getLinesFromFile
 
 class FilterTest extends ToolTest[Args] {
   def toolCommand: Filter.type = Filter
@@ -31,5 +34,125 @@ class FilterTest extends ToolTest[Args] {
     intercept[IllegalArgumentException] {
       Filter.main(Array())
     }
+  }
+
+  @Test
+  def testDefault(): Unit = {
+    val outputFile = File.createTempFile("test.", ".txt")
+    outputFile.deleteOnExit()
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt"),
+            "-o",
+            outputFile.getAbsolutePath))
+    val lines = getLinesFromFile(outputFile)
+    lines.size shouldBe 2
+  }
+
+  @Test
+  def testCompressed(): Unit = {
+    val outputFile = File.createTempFile("test.", ".txt")
+    outputFile.deleteOnExit()
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt.gz"),
+            "-o",
+            outputFile.getAbsolutePath))
+    val lines = getLinesFromFile(outputFile)
+    lines.size shouldBe 2
+  }
+
+  @Test
+  def testRegion(): Unit = {
+    val outputFile = File.createTempFile("test.", ".txt")
+    outputFile.deleteOnExit()
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt"),
+            "-o",
+            outputFile.getAbsolutePath,
+            "--intervals",
+            resourcePath("/region.bed")))
+    val lines = getLinesFromFile(outputFile)
+    lines.size shouldBe 2
+
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt"),
+            "-o",
+            outputFile.getAbsolutePath,
+            "--intervals",
+            resourcePath("/false_region.bed")))
+    val lines2 = getLinesFromFile(outputFile)
+    lines2.size shouldBe 1
+  }
+
+  @Test
+  def testMustContain(): Unit = {
+    val outputFile = File.createTempFile("test.", ".txt")
+    outputFile.deleteOnExit()
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt"),
+            "-o",
+            outputFile.getAbsolutePath,
+            "--fieldMustContain",
+            "chromosome=chr1"))
+    val lines = getLinesFromFile(outputFile)
+    lines.size shouldBe 2
+
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt"),
+            "-o",
+            outputFile.getAbsolutePath,
+            "--fieldMustContain",
+            "chromosome=chr2"))
+    val lines2 = getLinesFromFile(outputFile)
+    lines2.size shouldBe 1
+  }
+
+  @Test
+  def testMustBeBelow(): Unit = {
+    val outputFile = File.createTempFile("test.", ".txt")
+    outputFile.deleteOnExit()
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt"),
+            "-o",
+            outputFile.getAbsolutePath,
+            "--fieldMustBeBelow",
+            "EU=10.0"))
+    val lines = getLinesFromFile(outputFile)
+    lines.size shouldBe 2
+
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt"),
+            "-o",
+            outputFile.getAbsolutePath,
+            "--fieldMustBeBelow",
+            "EU=1.0"))
+    val lines2 = getLinesFromFile(outputFile)
+    lines2.size shouldBe 1
+  }
+
+  @Test
+  def testGenes(): Unit = {
+    val outputFile = File.createTempFile("test.", ".txt")
+    val outputFileGenes = File.createTempFile("test.", ".txt")
+    outputFile.deleteOnExit()
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt"),
+            "-o",
+            outputFile.getAbsolutePath,
+            "--geneColapseOutput",
+            outputFileGenes.getAbsolutePath))
+    val lines = getLinesFromFile(outputFile)
+    lines.size shouldBe 2
+
+    val geneLines = getLinesFromFile(outputFileGenes)
+    geneLines.size shouldBe 2
   }
 }

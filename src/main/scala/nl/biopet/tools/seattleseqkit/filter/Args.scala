@@ -28,4 +28,4 @@ case class Args(inputFile: File = null,
                 geneColapseOutput: Option[File] = None,
                 intervals: Option[File] = None,
                 fieldMustContain: List[(String, String)] = Nil,
-                fieldMustbeBelow: List[(String, Double)] = Nil)
+                fieldMustBeBelow: List[(String, Double)] = Nil)

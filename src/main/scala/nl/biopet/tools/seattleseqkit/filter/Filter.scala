@@ -58,12 +58,12 @@ object Filter extends ToolCommand[Args] {
       cmdArgs.fieldMustContain.map(x => (header(x._1), x._2))
 
     val mustBeBelowFields =
-      cmdArgs.fieldMustbeBelow.map(x => (header(x._1), x._2))
+      cmdArgs.fieldMustBeBelow.map(x => (header(x._1), x._2))
 
     val writer = new PrintWriter(cmdArgs.outputFile)
     val geneCounts = new ListBuffer[(String, String, Int)]()
     writer.println(headerLine)
-    lineIt.filter(!_.startsWith("#")).foreach { line =>
+    lineIt.filter(_.nonEmpty).filter(!_.startsWith("#")).foreach { line =>
       val values = line.split("\t")
       val contig = values(chrIdx)
       val pos = values(posIdx).toInt
