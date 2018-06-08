@@ -27,7 +27,7 @@ import java.util.zip.GZIPInputStream
 import nl.biopet.utils.ngs.intervals.{BedRecord, BedRecordList}
 import nl.biopet.utils.tool.ToolCommand
 
-import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.io.{BufferedSource, Source}
 
 object FilterSeattleSeq extends ToolCommand[Args] {
@@ -59,13 +59,14 @@ object FilterSeattleSeq extends ToolCommand[Args] {
       cmdArgs.fieldMustContain.map(x => (header(x._1), x._2))
 
     val writer = new PrintWriter(cmdArgs.outputFile)
-    val geneCounts = mutable.Map[String, Long]()
+    val geneCounts = new ListBuffer[(String, String, Int)]()
     writer.println(headerLine)
     lineIt.filter(!_.startsWith("#")).foreach { line =>
       val values = line.split("\t")
+      val contig = values(chrIdx)
+      val pos = values(posIdx).toInt
+
       val regionCheck = regions.forall { r =>
-        val contig = values(chrIdx)
-        val pos = values(posIdx).toInt
         r.overlapWith(BedRecord(contig, pos, pos)).nonEmpty
       }
 
@@ -74,19 +75,20 @@ object FilterSeattleSeq extends ToolCommand[Args] {
 
       if (regionCheck && mustContain) {
         values(genesIds).split(",").foreach { gene =>
-          geneCounts(gene) = geneCounts.getOrElse(gene, 0L) + 1
+          geneCounts.+=((gene, contig, pos))
         }
         writer.println(line)
       }
     }
 
     val geneWriter = cmdArgs.geneColapseOutput.map(new PrintWriter(_))
-
     geneWriter.foreach { w =>
-      geneCounts.keys.toList.sorted.foreach(g =>
-        w.println(g + "\t" + geneCounts(g)))
+      w.println("#Gene\tcounts")
+      geneCounts.groupBy(_._1).foreach { case (gene, values) =>
+        val count = values.map(x => (x._2, x._3)).distinct.size
+        w.println(gene + "\t" + count)
+      }
     }
-    //TODO: write genes
 
     writer.close()
     openFile.close()
