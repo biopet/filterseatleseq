@@ -19,13 +19,34 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package nl.biopet.tools.filterseattleseq
+package nl.biopet.tools.seattleseqkit.filter
 
 import java.io.File
 
-case class Args(inputFile: File = null,
-                outputFile: File = null,
-                geneColapseOutput: Option[File] = None,
-                intervals: Option[File] = None,
-                fieldMustContain: List[(String, String)] = Nil,
-                fieldMustbeBelow: List[(String, Double)] = Nil)
+import nl.biopet.utils.tool.{AbstractOptParser, ToolCommand}
+
+class ArgsParser(toolCommand: ToolCommand[Args])
+    extends AbstractOptParser[Args](toolCommand) {
+  opt[File]('i', "inputFile")
+    .required()
+    .action((x, c) => c.copy(inputFile = x))
+    .text("Seattle seq input file")
+  opt[File]('o', "outputFile")
+    .required()
+    .action((x, c) => c.copy(outputFile = x))
+    .text("Seattle seq output file")
+  opt[File]("geneColapseOutput")
+    .action((x, c) => c.copy(geneColapseOutput = Some(x)))
+    .text("Output file to count per gene hits")
+  opt[File]("intervals")
+    .action((x, c) => c.copy(intervals = Some(x)))
+    .text("Intervals bed file")
+  opt[(String, String)]("fieldMustContain")
+    .action((x, c) => c.copy(fieldMustContain = x :: c.fieldMustContain))
+    .text("Field must contain given text")
+    .valueName("<key>=<text>")
+  opt[(String, Double)]("fieldMustbeBelow")
+    .action((x, c) => c.copy(fieldMustbeBelow = x :: c.fieldMustbeBelow))
+    .text("Field must be below given numeric value")
+    .valueName("<key>=<double>")
+}

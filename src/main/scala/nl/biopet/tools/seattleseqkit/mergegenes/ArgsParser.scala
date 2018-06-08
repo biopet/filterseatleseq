@@ -19,17 +19,22 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package nl.biopet.tools.filterseattleseq
+package nl.biopet.tools.seattleseqkit.mergegenes
 
-import nl.biopet.utils.test.tools.ToolTest
-import org.testng.annotations.Test
+import java.io.File
 
-class FilterSeattleSeqTest extends ToolTest[Args] {
-  def toolCommand: FilterSeattleSeq.type = FilterSeattleSeq
-  @Test
-  def testNoArgs(): Unit = {
-    intercept[IllegalArgumentException] {
-      FilterSeattleSeq.main(Array())
-    }
-  }
+import nl.biopet.utils.tool.{AbstractOptParser, ToolCommand}
+
+class ArgsParser(toolCommand: ToolCommand[Args])
+    extends AbstractOptParser[Args](toolCommand) {
+  opt[(String, File)]('i', "inputFile")
+    .required()
+    .unbounded()
+    .minOccurs(2)
+    .action((x, c) => c.copy(inputFiles = c.inputFiles + x))
+    .text("Gene counts per sample")
+  opt[File]('o', "outputFile")
+    .required()
+    .action((x, c) => c.copy(outputFile = x))
+    .text("Output merges genes counts")
 }

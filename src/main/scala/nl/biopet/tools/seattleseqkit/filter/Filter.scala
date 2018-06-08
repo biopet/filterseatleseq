@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package nl.biopet.tools.filterseattleseq
+package nl.biopet.tools.seattleseqkit.filter
 
 import java.io._
 import java.util.zip.GZIPInputStream
@@ -30,11 +30,10 @@ import nl.biopet.utils.tool.ToolCommand
 import scala.collection.mutable.ListBuffer
 import scala.io.{BufferedSource, Source}
 
-object FilterSeattleSeq extends ToolCommand[Args] {
+object Filter extends ToolCommand[Args] {
   def emptyArgs = Args()
   def argsParser = new ArgsParser(this)
 
-  override def urlToolName: String = "tool-template"
   def main(args: Array[String]): Unit = {
     val cmdArgs = cmdArrayToArgs(args)
 
@@ -105,6 +104,7 @@ object FilterSeattleSeq extends ToolCommand[Args] {
     geneWriter.foreach(_.close())
     logger.info("Done")
   }
+
   def descriptionText: String =
     """
       |This tool can filter a seattle seq file. A given bed file will only select variants inside this regions.
