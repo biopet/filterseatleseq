@@ -3,13 +3,15 @@
 
 #### Tool - Filter
 
-This tool can filter a seattle seq file. A given bed file will only select variants inside this regions.
+This tool can filter a seattle seq file.
+A given bed file will only select variants inside this regions.
+Filtering on specific fields is also possible.
     
         
 
 #### Tool - MergeGenes
 
-
+This tool can merge gene counts from the filter step into 1 combined matrix. Genes that are not there will be filled with 0.
     
         
 

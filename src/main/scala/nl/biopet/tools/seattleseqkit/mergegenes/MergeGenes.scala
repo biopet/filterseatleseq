@@ -64,16 +64,26 @@ object MergeGenes extends ToolCommand[Args] {
 
   def descriptionText: String =
     """
-      |
+      |This tool can merge gene counts from the filter step into 1 combined matrix. Genes that are not there will be filled with 0.
     """.stripMargin
 
   def manualText: String =
     """
-      |
+      |The count files per sample are not required to have counts for all genes. Everything that is not share will become 0.
+      |The number of files is unlimited, more files only means more memory.
     """.stripMargin
 
   def exampleText: String =
-    """
+    s"""
+      |Default run to merge 3 samples:
+      |${example("-i",
+                 "<sample1 key>=<gene count file>",
+                 "-i",
+                 "<sample2 key>=<gene count file>",
+                 "-i",
+                 "<sample3 key>=<gene count file>",
+                 "-o",
+                 "<output file>")}
       |
     """.stripMargin
 

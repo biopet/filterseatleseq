@@ -107,16 +107,35 @@ object Filter extends ToolCommand[Args] {
 
   def descriptionText: String =
     """
-      |This tool can filter a seattle seq file. A given bed file will only select variants inside this regions.
+      |This tool can filter a seattle seq file.
+      |A given bed file will only select variants inside this regions.
+      |Filtering on specific fields is also possible.
     """.stripMargin
 
   def manualText: String =
     """
+      |The seattle files should have the columns 'chromosome', 'position' and 'geneList' to work.
+      |The gene output files are counted per gene and not per transcript. One variant can be counted twice here when the location is on more genes.
       |
     """.stripMargin
 
   def exampleText: String =
-    """
+    s"""
+      |Run with regions selection:
+      |${example("-i",
+                 "<input file>",
+                 "-o",
+                 "<output file>",
+                 "--intervals",
+                 "<bed file>")}
+      |
+      |Run where a field should contain the given text:
+      |${example("-i",
+                 "<input file>",
+                 "-o",
+                 "<output file>",
+                 "--fieldMustContain",
+                 "<field>=<text>")}
       |
     """.stripMargin
 }
