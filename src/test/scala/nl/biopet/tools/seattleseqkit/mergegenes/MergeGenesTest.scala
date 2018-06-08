@@ -21,6 +21,9 @@
 
 package nl.biopet.tools.seattleseqkit.mergegenes
 
+import java.io.File
+
+import nl.biopet.utils.io.getLinesFromFile
 import nl.biopet.utils.test.tools.ToolTest
 import org.testng.annotations.Test
 
@@ -31,5 +34,27 @@ class MergeGenesTest extends ToolTest[Args] {
     intercept[IllegalArgumentException] {
       MergeGenes.main(Array())
     }
+  }
+
+  @Test
+  def testDefault(): Unit = {
+    val outputFile = File.createTempFile("test.", ".txt")
+    outputFile.deleteOnExit()
+    MergeGenes.main(
+      Array("-i",
+            "genes1=" + resourcePath("/genes1.txt"),
+            "-i",
+            "genes2=" + resourcePath("/genes2.txt"),
+            "-o",
+            outputFile.getAbsolutePath))
+    val lines = getLinesFromFile(outputFile)
+    lines.size shouldBe 4
+
+    lines shouldBe List(
+      "Gene\tgenes1\tgenes2",
+      "g1\t1\t1",
+      "g2\t2\t0",
+      "g3\t0\t3"
+    )
   }
 }
