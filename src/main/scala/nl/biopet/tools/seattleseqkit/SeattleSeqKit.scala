@@ -26,7 +26,7 @@ import nl.biopet.tools.seattleseqkit.mergegenes.MergeGenes
 import nl.biopet.utils.tool.ToolCommand
 import nl.biopet.utils.tool.multi.MultiToolCommand
 
-object Executable extends MultiToolCommand {
+object SeattleSeqKit extends MultiToolCommand {
 
   def subTools: Map[String, List[ToolCommand[_]]] =
     Map("Tool" -> List(Filter, MergeGenes))
