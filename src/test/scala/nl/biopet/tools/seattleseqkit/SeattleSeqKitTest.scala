@@ -25,13 +25,13 @@ import nl.biopet.utils.test.tools.ToolTest
 import nl.biopet.utils.tool.multi
 import org.testng.annotations.Test
 
-class ExecutableTest extends ToolTest[multi.Args] {
-  def toolCommand: Executable.type = Executable
+class SeattleSeqKitTest extends ToolTest[multi.Args] {
+  def toolCommand: SeattleSeqKit.type = SeattleSeqKit
 
   @Test
   def testNoArgs(): Unit = {
     intercept[IllegalArgumentException] {
-      Executable.main(Array())
+      SeattleSeqKit.main(Array())
     }
   }
 }
