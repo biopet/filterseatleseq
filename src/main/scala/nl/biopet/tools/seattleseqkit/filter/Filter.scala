@@ -55,10 +55,14 @@ object Filter extends ToolCommand[Args] {
     val genesIds = header("geneList")
 
     val fieldMustContain =
-      cmdArgs.fieldMustContain.map(x => (header(x._1), x._2))
+      cmdArgs.fieldMustContain.map {
+        case (heading, value) => (header(heading), value)
+      }
 
     val mustBeBelowFields =
-      cmdArgs.fieldMustBeBelow.map(x => (header(x._1), x._2))
+      cmdArgs.fieldMustBeBelow.map {
+        case (heading, value) => (header(heading), value)
+      }
 
     val writer = new PrintWriter(cmdArgs.outputFile)
     val geneCounts = new ListBuffer[(String, String, Int)]()
@@ -73,7 +77,9 @@ object Filter extends ToolCommand[Args] {
       }
 
       val mustContain =
-        fieldMustContain.forall(x => values(x._1).contains(x._2))
+        fieldMustContain.forall {
+          case (idx, value) => values(idx).contains(value)
+        }
 
       val mustBeBelow = mustBeBelowFields.forall {
         case (key, cutoff) =>
@@ -92,9 +98,9 @@ object Filter extends ToolCommand[Args] {
     val geneWriter = cmdArgs.geneColapseOutput.map(new PrintWriter(_))
     geneWriter.foreach { w =>
       w.println("#Gene\tcounts")
-      geneCounts.groupBy(_._1).foreach {
+      geneCounts.groupBy { case (gene, _, _) => gene }.foreach {
         case (gene, values) =>
-          val count = values.map(x => (x._2, x._3)).distinct.size
+          val count = values.distinct.size
           w.println(gene + "\t" + count)
       }
     }

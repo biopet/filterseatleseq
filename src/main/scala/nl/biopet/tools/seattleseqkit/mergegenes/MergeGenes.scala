@@ -46,7 +46,7 @@ object MergeGenes extends ToolCommand[Args] {
           .map(x => (x(0), x(1).toInt))
           .toMap
     }
-    val genes = counts.flatMap(_._2).keySet.toList.sorted
+    val genes = counts.values.flatMap(_.keySet).toList.distinct.sorted
     val samples = counts.keySet.toList.sorted
 
     val writer = new PrintWriter(cmdArgs.outputFile)
