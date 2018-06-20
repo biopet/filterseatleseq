@@ -1,0 +1,3 @@
+# DBSNP	chromosome	position	geneList	EU
+none	chr1	10	test	2.0
+
