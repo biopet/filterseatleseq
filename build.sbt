@@ -15,6 +15,12 @@ developers += Developer(id = "ffinfo",
                         email = "pjrvanthof@gmail.com",
                         url = url("https://github.com/ffinfo"))
 
+biocondaTestCommands := Seq(
+  "biopet-seattleseqkit filter --help",
+  "biopet-seattleseqkit filter --version",
+  "biopet-seattleseqkit mergegenes --help",
+  "biopet-seattleseqkit mergegenes --version"
+)
 scalaVersion := "2.11.12"
 
 libraryDependencies += "com.github.biopet" %% "tool-utils" % "0.4"
