@@ -19,25 +19,14 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package nl.biopet.tools.seattleseqkit
+package nl.biopet.tools.seattleseqkit.multifilter
 
-import nl.biopet.tools.seattleseqkit.filter.Filter
-import nl.biopet.tools.seattleseqkit.mergegenes.MergeGenes
-import nl.biopet.tools.seattleseqkit.multifilter.MultiFilter
-import nl.biopet.utils.tool.ToolCommand
-import nl.biopet.utils.tool.multi.MultiToolCommand
+import java.io.File
 
-object SeattleSeqKit extends MultiToolCommand {
-
-  def subTools: Map[String, List[ToolCommand[_]]] =
-    Map("Tool" -> List(Filter, MergeGenes, MultiFilter))
-
-  def descriptionText: String = extendedDescriptionText
-
-  def manualText: String = extendedManualText
-
-  def exampleText: String = extendedExampleText
-
-  override def extendedUsage = true
-
-}
+case class Args(inputFiles: Map[String, File] = Map(),
+                outputDir: File = null,
+                multiSampleTreshold: Int = 2,
+                geneColapseOutput: Option[File] = None,
+                intervals: Map[String, File] = Map(),
+                fieldMustContain: List[(String, String)] = Nil,
+                fieldMustBeBelow: List[(String, Double)] = Nil)

@@ -21,7 +21,7 @@
 
 package nl.biopet.tools.seattleseqkit.mergegenes
 
-import java.io.PrintWriter
+import java.io.{File, PrintWriter}
 
 import nl.biopet.utils.tool.ToolCommand
 
@@ -46,20 +46,37 @@ object MergeGenes extends ToolCommand[Args] {
           .map(x => (x(0), x(1).toInt))
           .toMap
     }
-    val genes = counts.values.flatMap(_.keySet).toList.distinct.sorted
-    val samples = counts.keySet.toList.sorted
 
-    val writer = new PrintWriter(cmdArgs.outputFile)
+    writeCounts(mergeGeneCounts(counts), cmdArgs.outputFile)
+
+    logger.info("Done")
+  }
+
+  def mergeGeneCounts(
+      input: Map[String, Map[String, Int]]): Map[String, Map[String, Int]] = {
+    val genes = input.values.flatMap(_.keySet).toSet
+    val samples = input.keySet
+
+    genes
+      .map(gene =>
+        gene -> samples.map(s => s -> input(s).getOrElse(gene, 0)).toMap)
+      .toMap
+  }
+
+  def writeCounts(counts: Map[String, Map[String, Int]],
+                  outputFile: File): Unit = {
+    val genes = counts.keys.toList.sorted
+    val samples =
+      counts.flatMap { case (_, g) => g.keys }.toList.distinct.sorted
+    val writer = new PrintWriter(outputFile)
     writer.println("Gene\t" + samples.mkString("\t"))
 
     for (gene <- genes) {
       writer.print(gene + "\t")
-      writer.println(samples.map(counts(_).getOrElse(gene, 0)).mkString("\t"))
+      val geneCounts = counts(gene)
+      writer.println(samples.map(geneCounts.getOrElse(_, 0)).mkString("\t"))
     }
-
     writer.close()
-
-    logger.info("Done")
   }
 
   def descriptionText: String =
