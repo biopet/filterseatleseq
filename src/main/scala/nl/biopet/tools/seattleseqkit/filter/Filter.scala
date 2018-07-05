@@ -39,12 +39,15 @@ object Filter extends ToolCommand[Args] {
 
     logger.info("Start")
 
-    filterSingleFile(cmdArgs.inputFile,
-                     cmdArgs.intervals,
-                     cmdArgs.outputFile,
-                     cmdArgs.geneColapseOutput,
-                     cmdArgs.fieldMustContain,
-                     cmdArgs.fieldMustBeBelow)
+    filterSingleFile(
+      cmdArgs.inputFile,
+      cmdArgs.intervals,
+      cmdArgs.outputFile,
+      cmdArgs.geneColapseOutput,
+      cmdArgs.fieldMustContain,
+      cmdArgs.fieldMustBeBelow,
+      cmdArgs.fieldMustBeAbove
+    )
 
     logger.info("Done")
   }
@@ -55,7 +58,8 @@ object Filter extends ToolCommand[Args] {
       outputFile: File,
       geneColapseOutput: Option[File],
       fieldMustContain2: List[(String, String)],
-      fieldMustBeBelow: List[(String, Double)]): Map[String, Int] = {
+      fieldMustBeBelow: List[(String, Double)],
+      fieldMustBeAbove: List[(String, Double)]): Map[String, Int] = {
     val regions = intervals.map(BedRecordList.fromFile)
 
     val openFile: BufferedSource = Source.fromInputStream(
@@ -78,6 +82,11 @@ object Filter extends ToolCommand[Args] {
 
     val mustBeBelowFields =
       fieldMustBeBelow.map {
+        case (heading, value) => (header(heading), value)
+      }
+
+    val mustBeAboveFields =
+      fieldMustBeAbove.map {
         case (heading, value) => (header(heading), value)
       }
 
@@ -104,7 +113,13 @@ object Filter extends ToolCommand[Args] {
           else values(key).toDouble <= cutoff
       }
 
-      if (regionCheck && mustContain && mustBeBelow) {
+      val mustBeAbove = mustBeAboveFields.forall {
+        case (key, cutoff) =>
+          if (values(key) == "NA") true
+          else values(key).toDouble >= cutoff
+      }
+
+      if (regionCheck && mustContain && mustBeBelow && mustBeAbove) {
         values(genesIds).split(",").foreach { gene =>
           positions.+=((gene, contig, pos))
         }

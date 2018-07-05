@@ -45,7 +45,8 @@ object MultiFilter extends ToolCommand[Args] {
           new File(cmdArgs.outputDir, sample + ".tsv"),
           Some(new File(cmdArgs.outputDir, sample + ".genes.tsv")),
           cmdArgs.fieldMustContain,
-          cmdArgs.fieldMustBeBelow
+          cmdArgs.fieldMustBeBelow,
+          cmdArgs.fieldMustBeAbove
         )
     }
 

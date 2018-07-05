@@ -29,4 +29,5 @@ case class Args(inputFiles: Map[String, File] = Map(),
                 geneColapseOutput: Option[File] = None,
                 intervals: Map[String, File] = Map(),
                 fieldMustContain: List[(String, String)] = Nil,
-                fieldMustBeBelow: List[(String, Double)] = Nil)
+                fieldMustBeBelow: List[(String, Double)] = Nil,
+                fieldMustBeAbove: List[(String, Double)] = Nil)

@@ -55,4 +55,8 @@ class ArgsParser(toolCommand: ToolCommand[Args])
     .action((x, c) => c.copy(fieldMustBeBelow = x :: c.fieldMustBeBelow))
     .text("Field must be below given numeric value")
     .valueName("<key>=<double>")
+  opt[(String, Double)]("fieldMustBeAbove")
+    .action((x, c) => c.copy(fieldMustBeAbove = x :: c.fieldMustBeAbove))
+    .text("Field must be below given numeric value")
+    .valueName("<key>=<double>")
 }
