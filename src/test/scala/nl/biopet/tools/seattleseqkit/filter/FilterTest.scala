@@ -138,6 +138,31 @@ class FilterTest extends ToolTest[Args] {
   }
 
   @Test
+  def testMustBeAbove(): Unit = {
+    val outputFile = File.createTempFile("test.", ".txt")
+    outputFile.deleteOnExit()
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt"),
+            "-o",
+            outputFile.getAbsolutePath,
+            "--fieldMustBeAbove",
+            "EU=10.0"))
+    val lines = getLinesFromFile(outputFile)
+    lines.size shouldBe 1
+
+    Filter.main(
+      Array("-i",
+            resourcePath("/seattleseq.text.txt"),
+            "-o",
+            outputFile.getAbsolutePath,
+            "--fieldMustBeAbove",
+            "EU=1.0"))
+    val lines2 = getLinesFromFile(outputFile)
+    lines2.size shouldBe 2
+  }
+
+  @Test
   def testGenes(): Unit = {
     val outputFile = File.createTempFile("test.", ".txt")
     val outputFileGenes = File.createTempFile("test.", ".txt")

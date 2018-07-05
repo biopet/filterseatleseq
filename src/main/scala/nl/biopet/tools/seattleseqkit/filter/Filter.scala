@@ -27,7 +27,7 @@ import java.util.zip.GZIPInputStream
 import nl.biopet.utils.ngs.intervals.{BedRecord, BedRecordList}
 import nl.biopet.utils.tool.ToolCommand
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
 
 object Filter extends ToolCommand[Args] {
@@ -39,13 +39,34 @@ object Filter extends ToolCommand[Args] {
 
     logger.info("Start")
 
-    val regions = cmdArgs.intervals.map(BedRecordList.fromFile)
+    filterSingleFile(
+      cmdArgs.inputFile,
+      cmdArgs.intervals,
+      cmdArgs.outputFile,
+      cmdArgs.geneColapseOutput,
+      cmdArgs.fieldMustContain,
+      cmdArgs.fieldMustBeBelow,
+      cmdArgs.fieldMustBeAbove
+    )
+
+    logger.info("Done")
+  }
+
+  def filterSingleFile(
+      inputFile: File,
+      intervals: Option[File],
+      outputFile: File,
+      geneColapseOutput: Option[File],
+      fieldMustContain2: List[(String, String)],
+      fieldMustBeBelow: List[(String, Double)],
+      fieldMustBeAbove: List[(String, Double)]): Map[String, Int] = {
+    val regions = intervals.map(BedRecordList.fromFile)
 
     val openFile: BufferedSource = Source.fromInputStream(
-      if (cmdArgs.inputFile.getName.endsWith(".gz"))
+      if (inputFile.getName.endsWith(".gz"))
         new GZIPInputStream(
-          new BufferedInputStream(new FileInputStream(cmdArgs.inputFile)))
-      else new FileInputStream(cmdArgs.inputFile))
+          new BufferedInputStream(new FileInputStream(inputFile)))
+      else new FileInputStream(inputFile))
 
     val lineIt = openFile.getLines()
     val headerLine = lineIt.next()
@@ -55,17 +76,22 @@ object Filter extends ToolCommand[Args] {
     val genesIds = header("geneList")
 
     val fieldMustContain =
-      cmdArgs.fieldMustContain.map {
+      fieldMustContain2.map {
         case (heading, value) => (header(heading), value)
       }
 
     val mustBeBelowFields =
-      cmdArgs.fieldMustBeBelow.map {
+      fieldMustBeBelow.map {
         case (heading, value) => (header(heading), value)
       }
 
-    val writer = new PrintWriter(cmdArgs.outputFile)
-    val geneCounts = new ListBuffer[(String, String, Int)]()
+    val mustBeAboveFields =
+      fieldMustBeAbove.map {
+        case (heading, value) => (header(heading), value)
+      }
+
+    val writer = new PrintWriter(outputFile)
+    val positions = mutable.Set.empty[(String, String, Int)]
     writer.println(headerLine)
     lineIt.filter(_.nonEmpty).filter(!_.startsWith("#")).foreach { line =>
       val values = line.split("\t")
@@ -87,20 +113,28 @@ object Filter extends ToolCommand[Args] {
           else values(key).toDouble <= cutoff
       }
 
-      if (regionCheck && mustContain && mustBeBelow) {
+      val mustBeAbove = mustBeAboveFields.forall {
+        case (key, cutoff) =>
+          if (values(key) == "NA") true
+          else values(key).toDouble >= cutoff
+      }
+
+      if (regionCheck && mustContain && mustBeBelow && mustBeAbove) {
         values(genesIds).split(",").foreach { gene =>
-          geneCounts.+=((gene, contig, pos))
+          positions.+=((gene, contig, pos))
         }
         writer.println(line)
       }
     }
 
-    val geneWriter = cmdArgs.geneColapseOutput.map(new PrintWriter(_))
+    val geneCounts = positions.groupBy { case (gene, _, _) => gene }.map {
+      case (gene, list) => gene -> list.size
+    }
+    val geneWriter = geneColapseOutput.map(new PrintWriter(_))
+    geneWriter.foreach(_.println("#Gene\tcounts"))
     geneWriter.foreach { w =>
-      w.println("#Gene\tcounts")
-      geneCounts.groupBy { case (gene, _, _) => gene }.foreach {
-        case (gene, values) =>
-          val count = values.distinct.size
+      geneCounts.foreach {
+        case (gene, count) =>
           w.println(gene + "\t" + count)
       }
     }
@@ -108,7 +142,8 @@ object Filter extends ToolCommand[Args] {
     writer.close()
     openFile.close()
     geneWriter.foreach(_.close())
-    logger.info("Done")
+
+    geneCounts
   }
 
   def descriptionText: String =

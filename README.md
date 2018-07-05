@@ -15,6 +15,14 @@ This tool can merge gene counts from the filter step into 1 combined matrix. Gen
     
         
 
+#### Tool - MultiFilter
+
+This tool can filter a seattle seq file.
+A given bed file will only select variants inside this regions.
+Filtering on specific fields is also possible.
+    
+        
+
 # Documentation
 
 For documentation and manuals visit our [github.io page](https://biopet.github.io/seattleseqkit).

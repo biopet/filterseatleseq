@@ -19,7 +19,7 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package nl.biopet.tools.seattleseqkit.filter
+package nl.biopet.tools.seattleseqkit.multifilter
 
 import java.io.File
 
@@ -27,19 +27,25 @@ import nl.biopet.utils.tool.{AbstractOptParser, ToolCommand}
 
 class ArgsParser(toolCommand: ToolCommand[Args])
     extends AbstractOptParser[Args](toolCommand) {
-  opt[File]('i', "inputFile")
+  opt[(String, File)]('i', "inputFile")
     .required()
-    .action((x, c) => c.copy(inputFile = x))
+    .unbounded()
+    .action((x, c) => c.copy(inputFiles = c.inputFiles + x))
     .text("Seattle seq input file")
-  opt[File]('o', "outputFile")
+  opt[File]('o', "outputDir")
     .required()
-    .action((x, c) => c.copy(outputFile = x))
-    .text("Seattle seq output file")
+    .action((x, c) => c.copy(outputDir = x))
+    .text("Output directory")
+  opt[Int]("multiSampleTreshold")
+    .action((x, c) => c.copy(multiSampleTreshold = x))
+    .text(
+      s"Minimal number of samples per gene, default: ${Args().multiSampleTreshold}")
   opt[File]("geneColapseOutput")
     .action((x, c) => c.copy(geneColapseOutput = Some(x)))
     .text("Output file to count per gene hits")
-  opt[File]("intervals")
-    .action((x, c) => c.copy(intervals = Some(x)))
+  opt[(String, File)]("intervals")
+    .unbounded()
+    .action((x, c) => c.copy(intervals = c.intervals + x))
     .text("Intervals bed file")
   opt[(String, String)]("fieldMustContain")
     .action((x, c) => c.copy(fieldMustContain = x :: c.fieldMustContain))
