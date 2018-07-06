@@ -29,6 +29,7 @@ import nl.biopet.utils.tool.ToolCommand
 
 import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
+import scala.util.control.NonFatal
 
 object Filter extends ToolCommand[Args] {
   def emptyArgs = Args()
@@ -167,7 +168,7 @@ object Filter extends ToolCommand[Args] {
               writer.println(line)
             }
           } catch {
-            case e: Exception =>
+            case NonFatal(e) =>
               throw new IllegalStateException(
                 s"Something did go wrong at line ${lineIdx + 2}, file: $inputFile",
                 e)
