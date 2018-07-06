@@ -50,11 +50,9 @@ class MergeGenesTest extends ToolTest[Args] {
     val lines = getLinesFromFile(outputFile)
     lines.size shouldBe 4
 
-    lines shouldBe List(
-      "Gene\tgenes1\tgenes2",
-      "g1\t1\t1",
-      "g2\t2\t0",
-      "g3\t0\t3"
-    )
+    lines(0) shouldBe "Gene\tCompound\tHom\tgenes1-het\tgenes1-hom\tgenes2-het\tgenes2-hom"
+    lines(1) shouldBe "g1\t0\t1\t1\t0\t0\t1"
+    lines(2) shouldBe "g2\t0\t1\t1\t1\t0\t0"
+    lines(3) shouldBe "g3\t0\t1\t0\t0\t1\t2"
   }
 }

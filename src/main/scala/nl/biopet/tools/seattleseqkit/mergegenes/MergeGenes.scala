@@ -23,6 +23,7 @@ package nl.biopet.tools.seattleseqkit.mergegenes
 
 import java.io.{File, PrintWriter}
 
+import nl.biopet.tools.seattleseqkit.Counts
 import nl.biopet.utils.tool.ToolCommand
 
 import scala.io.Source
@@ -43,7 +44,7 @@ object MergeGenes extends ToolCommand[Args] {
         sample -> it
           .filter(!_.startsWith("#"))
           .map(_.split("\t"))
-          .map(x => (x(0), x(1).toInt))
+          .map(x => (x(0), Counts(x(1).toInt, x(2).toInt)))
           .toMap
     }
 
@@ -52,29 +53,45 @@ object MergeGenes extends ToolCommand[Args] {
     logger.info("Done")
   }
 
-  def mergeGeneCounts(
-      input: Map[String, Map[String, Int]]): Map[String, Map[String, Int]] = {
+  def mergeGeneCounts(input: Map[String, Map[String, Counts]])
+    : Map[String, Map[String, Counts]] = {
     val genes = input.values.flatMap(_.keySet).toSet
     val samples = input.keySet
 
     genes
-      .map(gene =>
-        gene -> samples.map(s => s -> input(s).getOrElse(gene, 0)).toMap)
+      .map(
+        gene =>
+          gene -> samples
+            .map(s => s -> input(s).getOrElse(gene, Counts(0, 0)))
+            .toMap)
       .toMap
   }
 
-  def writeCounts(counts: Map[String, Map[String, Int]],
+  def writeCounts(counts: Map[String, Map[String, Counts]],
                   outputFile: File): Unit = {
     val genes = counts.keys.toList.sorted
     val samples =
       counts.flatMap { case (_, g) => g.keys }.toList.distinct.sorted
     val writer = new PrintWriter(outputFile)
-    writer.println("Gene\t" + samples.mkString("\t"))
+    writer.println(
+      "Gene\tCompound\tHom\t" + samples
+        .map(s => s"$s-het\t$s-hom")
+        .mkString("\t"))
 
     for (gene <- genes) {
-      writer.print(gene + "\t")
       val geneCounts = counts(gene)
-      writer.println(samples.map(geneCounts.getOrElse(_, 0)).mkString("\t"))
+      val hom = geneCounts.values.count(_.hom > 0)
+      val compound = geneCounts.values.count(x => x.hom == 0 && x.het >= 2)
+      writer.print(gene + "\t" + compound + "\t" + hom + "\t")
+      writer.println(
+        samples
+          .map(
+            s =>
+              geneCounts.get(s).map(_.het).getOrElse(0) + "\t" + geneCounts
+                .get(s)
+                .map(_.hom)
+                .getOrElse(0))
+          .mkString("\t"))
     }
     writer.close()
   }

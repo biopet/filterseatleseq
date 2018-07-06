@@ -24,6 +24,7 @@ package nl.biopet.tools.seattleseqkit.filter
 import java.io._
 import java.util.zip.GZIPInputStream
 
+import nl.biopet.tools.seattleseqkit.Counts
 import nl.biopet.utils.ngs.intervals.{BedRecord, BedRecordList}
 import nl.biopet.utils.tool.ToolCommand
 
@@ -60,7 +61,7 @@ object Filter extends ToolCommand[Args] {
       geneColapseOutput: Option[File],
       fieldMustContain2: List[(String, String)],
       fieldMustBeBelow: List[(String, Double)],
-      fieldMustBeAbove: List[(String, Double)]): Map[String, Int] = {
+      fieldMustBeAbove: List[(String, Double)]): Map[String, Counts] = {
     val regions = intervals.map(BedRecordList.fromFile)
 
     val openFile: BufferedSource = Source.fromInputStream(
@@ -76,6 +77,7 @@ object Filter extends ToolCommand[Args] {
     val chrIdx = header("chromosome")
     val posIdx = header("position")
     val genesIds = header("geneList")
+    val sampleAlleleIdx = header("sampleAlleles")
 
     val fieldMustContain =
       fieldMustContain2.map {
@@ -105,7 +107,7 @@ object Filter extends ToolCommand[Args] {
       }
 
     val writer = new PrintWriter(outputFile)
-    val positions = mutable.Set.empty[(String, String, Int)]
+    val positions = mutable.Set.empty[(String, String, Int, Boolean)]
     writer.println(headerLine)
     lineIt.zipWithIndex
       .filter(_._1.nonEmpty)
@@ -163,7 +165,10 @@ object Filter extends ToolCommand[Args] {
 
             if (regionCheck && mustContain && mustBeBelow && mustBeAbove) {
               values(genesIds).split(",").foreach { gene =>
-                positions.+=((gene, contig, pos))
+                val alleles = values(sampleAlleleIdx).split("/")
+                if (alleles.lift(0) == alleles.lift(1))
+                  positions.+=((gene, contig, pos, true))
+                else positions.+=((gene, contig, pos, false))
               }
               writer.println(line)
             }
@@ -175,15 +180,20 @@ object Filter extends ToolCommand[Args] {
           }
       }
 
-    val geneCounts = positions.groupBy { case (gene, _, _) => gene }.map {
-      case (gene, list) => gene -> list.size
+    val geneCounts = positions.groupBy { case (gene, _, _, _) => gene }.map {
+      case (gene, list) =>
+        val c = list.groupBy(_._4)
+        val het = c.get(false).map(_.size).getOrElse(0)
+        val hom = c.get(true).map(_.size).getOrElse(0)
+        gene -> Counts(het, hom)
     }
     val geneWriter = geneColapseOutput.map(new PrintWriter(_))
-    geneWriter.foreach(_.println("#Gene\tcounts"))
+    geneWriter.foreach(_.println("#Gene\thet\thom\ttotal"))
     geneWriter.foreach { w =>
       geneCounts.foreach {
         case (gene, count) =>
-          w.println(gene + "\t" + count)
+          w.println(
+            gene + "\t" + count.het + "\t" + count.hom + "\t" + count.total)
       }
     }
 
