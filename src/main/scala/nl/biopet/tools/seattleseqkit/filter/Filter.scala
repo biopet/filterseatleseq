@@ -70,62 +70,109 @@ object Filter extends ToolCommand[Args] {
 
     val lineIt = openFile.getLines()
     val headerLine = lineIt.next()
-    val header = headerLine.split("\t").zipWithIndex.toMap
+    val headerValues = headerLine.split("\t")
+    val header = headerValues.zipWithIndex.toMap
     val chrIdx = header("chromosome")
     val posIdx = header("position")
     val genesIds = header("geneList")
 
     val fieldMustContain =
       fieldMustContain2.map {
-        case (heading, value) => (header(heading), value)
+        case (heading, value) =>
+          (header.getOrElse(
+             heading,
+             throw new IllegalArgumentException(s"Key '$heading' not found")),
+           value)
       }
 
     val mustBeBelowFields =
       fieldMustBeBelow.map {
-        case (heading, value) => (header(heading), value)
+        case (heading, value) =>
+          (header.getOrElse(
+             heading,
+             throw new IllegalArgumentException(s"Key '$heading' not found")),
+           value)
       }
 
     val mustBeAboveFields =
       fieldMustBeAbove.map {
-        case (heading, value) => (header(heading), value)
+        case (heading, value) =>
+          (header.getOrElse(
+             heading,
+             throw new IllegalArgumentException(s"Key '$heading' not found")),
+           value)
       }
 
     val writer = new PrintWriter(outputFile)
     val positions = mutable.Set.empty[(String, String, Int)]
     writer.println(headerLine)
-    lineIt.filter(_.nonEmpty).filter(!_.startsWith("#")).foreach { line =>
-      val values = line.split("\t")
-      val contig = values(chrIdx)
-      val pos = values(posIdx).toInt
+    lineIt.zipWithIndex
+      .filter(_._1.nonEmpty)
+      .filter(!_._1.startsWith("#"))
+      .foreach {
+        case (line, lineIdx) =>
+          try {
+            val values = line.split("\t")
+            val contig = values(chrIdx)
+            val pos = values(posIdx).toInt
 
-      val regionCheck = regions.forall { r =>
-        r.overlapWith(BedRecord(contig, pos, pos)).nonEmpty
+            val regionCheck = regions.forall { r =>
+              r.overlapWith(BedRecord(contig, pos, pos)).nonEmpty
+            }
+
+            lazy val mustContain =
+              fieldMustContain.forall {
+                case (idx, value) => values(idx).contains(value)
+              }
+
+            lazy val mustBeBelow = mustBeBelowFields.forall {
+              case (key, cutoff) =>
+                values(key) match {
+                  case "NA" | "unknown" => true
+                  case x =>
+                    try {
+                      x.toDouble <= cutoff
+                    } catch {
+                      case e: NumberFormatException =>
+                        logger.warn(
+                          s"Value '$x' is not a number, ignoring field '${headerValues(
+                            key)}' for line ${lineIdx + 2}, file: $inputFile")
+                        true
+                    }
+                }
+
+            }
+
+            lazy val mustBeAbove = mustBeAboveFields.forall {
+              case (key, cutoff) =>
+                values(key) match {
+                  case "NA" | "unknown" => false
+                  case x =>
+                    try {
+                      x.toDouble >= cutoff
+                    } catch {
+                      case e: NumberFormatException =>
+                        logger.warn(
+                          s"Value '$x' is not a number, ignoring field '${headerValues(
+                            key)}' for line ${lineIdx + 2}, file: $inputFile")
+                        true
+                    }
+                }
+            }
+
+            if (regionCheck && mustContain && mustBeBelow && mustBeAbove) {
+              values(genesIds).split(",").foreach { gene =>
+                positions.+=((gene, contig, pos))
+              }
+              writer.println(line)
+            }
+          } catch {
+            case e: Exception =>
+              throw new IllegalStateException(
+                s"Something did go wrong at line ${lineIdx + 2}, file: $inputFile",
+                e)
+          }
       }
-
-      val mustContain =
-        fieldMustContain.forall {
-          case (idx, value) => values(idx).contains(value)
-        }
-
-      val mustBeBelow = mustBeBelowFields.forall {
-        case (key, cutoff) =>
-          if (values(key) == "NA") true
-          else values(key).toDouble <= cutoff
-      }
-
-      val mustBeAbove = mustBeAboveFields.forall {
-        case (key, cutoff) =>
-          if (values(key) == "NA") true
-          else values(key).toDouble >= cutoff
-      }
-
-      if (regionCheck && mustContain && mustBeBelow && mustBeAbove) {
-        values(genesIds).split(",").foreach { gene =>
-          positions.+=((gene, contig, pos))
-        }
-        writer.println(line)
-      }
-    }
 
     val geneCounts = positions.groupBy { case (gene, _, _) => gene }.map {
       case (gene, list) => gene -> list.size
