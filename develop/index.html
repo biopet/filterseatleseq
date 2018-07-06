@@ -112,6 +112,11 @@
         <h4 id="tool---mergegenes" class="section">Tool - MergeGenes</h4>
         <p>This tool can merge gene counts from the filter step into 1 combined matrix. Genes that are not there will be filled with 0.</p>
         
+        <h4 id="tool---multifilter" class="section">Tool - MultiFilter</h4>
+        <p>This tool can filter a seattle seq file.
+        A given bed file will only select variants inside this regions.
+        Filtering on specific fields is also possible.</p>
+        
         <h1 id="installation" class="section">Installation</h1>
         <p>SeattleSeqKit requires Java 8 to be installed on your device. Download Java 8
         <a href="http://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html">here</a>
@@ -129,6 +134,10 @@
         <h4 id="tool---mergegenes-1" class="section">Tool - MergeGenes</h4>
         <p>The count files per sample are not required to have counts for all genes. Everything that is not share will become 0.
         The number of files is unlimited, more files only means more memory.</p>
+        
+        <h4 id="tool---multifilter-1" class="section">Tool - MultiFilter</h4>
+        <p>The seattle files should have the columns &#39;chromosome&#39;, &#39;position&#39; and &#39;geneList&#39; to work.
+        The gene output files are counted per gene and not per transcript. One variant can be counted twice here when the location is on more genes.</p>
         
         <h2 id="example" class="section">Example</h2>
         
@@ -151,6 +160,18 @@
 -i &lt;sample2 key&gt;=&lt;gene count file&gt; \
 -i &lt;sample3 key&gt;=&lt;gene count file&gt; \
 -o &lt;output file&gt;</code></pre>
+        
+        <h4 id="tool---multifilter-2" class="section">Tool - MultiFilter</h4>
+        <p>Run with regions selection:</p>
+        <pre><code>java -jar &lt;MultiFilter_jar&gt; \
+-i &lt;sample&gt;=&lt;input file&gt; \
+-o &lt;output dir&gt; \
+--intervals &lt;sample&gt;=&lt;bed file&gt;</code></pre>
+        <p>Run where a field should contain the given text:</p>
+        <pre><code>java -jar &lt;MultiFilter_jar&gt; \
+-i &lt;sample&gt;=&lt;input file&gt; \
+-o &lt;output dir&gt; \
+--fieldMustContain &lt;field&gt;=&lt;text&gt;</code></pre>
         
         <h2 id="usage" class="section">Usage</h2>
         <p>Usage for SeattleSeqKit:</p>
@@ -262,6 +283,12 @@
               <td>no</td>
               <td>Field must be below given numeric value</td>
             </tr>
+            <tr>
+              <td>--fieldMustBeAbove</td>
+              <td>no</td>
+              <td>no</td>
+              <td>Field must be below given numeric value</td>
+            </tr>
           </tbody>
         </table>
         
@@ -305,6 +332,86 @@
               <td>yes</td>
               <td>no</td>
               <td>Output merges genes counts</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <h3 id="usage-for-tool---multifilter" class="section">Usage for Tool - MultiFilter:</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th>Required</th>
+              <th>Can occur multiple times</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>--log_level, -l</td>
+              <td>no</td>
+              <td>no</td>
+              <td>Level of log information printed. Possible levels: &#39;debug&#39;, &#39;info&#39;, &#39;warn&#39;, &#39;error&#39;</td>
+            </tr>
+            <tr>
+              <td>--help, -h</td>
+              <td>no</td>
+              <td>no</td>
+              <td>Print usage</td>
+            </tr>
+            <tr>
+              <td>--version, -v</td>
+              <td>no</td>
+              <td>no</td>
+              <td>Print version</td>
+            </tr>
+            <tr>
+              <td>--inputFile, -i</td>
+              <td>yes</td>
+              <td>yes (unlimited)</td>
+              <td>Seattle seq input file</td>
+            </tr>
+            <tr>
+              <td>--outputDir, -o</td>
+              <td>yes</td>
+              <td>no</td>
+              <td>Output directory</td>
+            </tr>
+            <tr>
+              <td>--multiSampleTreshold</td>
+              <td>no</td>
+              <td>no</td>
+              <td>Minimal number of samples per gene, default: 2</td>
+            </tr>
+            <tr>
+              <td>--geneColapseOutput</td>
+              <td>no</td>
+              <td>no</td>
+              <td>Output file to count per gene hits</td>
+            </tr>
+            <tr>
+              <td>--intervals</td>
+              <td>no</td>
+              <td>yes (unlimited)</td>
+              <td>Intervals bed file</td>
+            </tr>
+            <tr>
+              <td>--fieldMustContain</td>
+              <td>no</td>
+              <td>no</td>
+              <td>Field must contain given text</td>
+            </tr>
+            <tr>
+              <td>--fieldMustBeBelow</td>
+              <td>no</td>
+              <td>no</td>
+              <td>Field must be below given numeric value</td>
+            </tr>
+            <tr>
+              <td>--fieldMustBeAbove</td>
+              <td>no</td>
+              <td>no</td>
+              <td>Field must be below given numeric value</td>
             </tr>
           </tbody>
         </table>
