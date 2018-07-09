@@ -110,8 +110,8 @@ object Filter extends ToolCommand[Args] {
     val positions = mutable.Set.empty[(String, String, Int, Boolean)]
     writer.println(headerLine)
     lineIt.zipWithIndex
-      .filter(_._1.nonEmpty)
-      .filter(!_._1.startsWith("#"))
+      .filter { case (x, _) => x.nonEmpty }
+      .filter { case (x, _) => x.startsWith("#") }
       .foreach {
         case (line, lineIdx) =>
           try {
@@ -182,7 +182,7 @@ object Filter extends ToolCommand[Args] {
 
     val geneCounts = positions.groupBy { case (gene, _, _, _) => gene }.map {
       case (gene, list) =>
-        val c = list.groupBy(_._4)
+        val c = list.groupBy { case (_, _, _, x) => x }
         val het = c.get(false).map(_.size).getOrElse(0)
         val hom = c.get(true).map(_.size).getOrElse(0)
         gene -> Counts(het, hom)
