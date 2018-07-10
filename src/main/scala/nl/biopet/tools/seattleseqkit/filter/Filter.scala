@@ -111,7 +111,7 @@ object Filter extends ToolCommand[Args] {
     writer.println(headerLine)
     lineIt.zipWithIndex
       .filter { case (x, _) => x.nonEmpty }
-      .filter { case (x, _) => x.startsWith("#") }
+      .filter { case (x, _) => !x.startsWith("#") }
       .foreach {
         case (line, lineIdx) =>
           try {
