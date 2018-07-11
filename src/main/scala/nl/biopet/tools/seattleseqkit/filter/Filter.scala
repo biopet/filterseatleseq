@@ -24,11 +24,13 @@ package nl.biopet.tools.seattleseqkit.filter
 import java.io._
 import java.util.zip.GZIPInputStream
 
+import nl.biopet.tools.seattleseqkit.Counts
 import nl.biopet.utils.ngs.intervals.{BedRecord, BedRecordList}
 import nl.biopet.utils.tool.ToolCommand
 
 import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
+import scala.util.control.NonFatal
 
 object Filter extends ToolCommand[Args] {
   def emptyArgs = Args()
@@ -59,7 +61,7 @@ object Filter extends ToolCommand[Args] {
       geneColapseOutput: Option[File],
       fieldMustContain2: List[(String, String)],
       fieldMustBeBelow: List[(String, Double)],
-      fieldMustBeAbove: List[(String, Double)]): Map[String, Int] = {
+      fieldMustBeAbove: List[(String, Double)]): Map[String, Counts] = {
     val regions = intervals.map(BedRecordList.fromFile)
 
     val openFile: BufferedSource = Source.fromInputStream(
@@ -70,72 +72,128 @@ object Filter extends ToolCommand[Args] {
 
     val lineIt = openFile.getLines()
     val headerLine = lineIt.next()
-    val header = headerLine.split("\t").zipWithIndex.toMap
+    val headerValues = headerLine.split("\t")
+    val header = headerValues.zipWithIndex.toMap
     val chrIdx = header("chromosome")
     val posIdx = header("position")
     val genesIds = header("geneList")
+    val sampleAlleleIdx = header("sampleAlleles")
 
     val fieldMustContain =
       fieldMustContain2.map {
-        case (heading, value) => (header(heading), value)
+        case (heading, value) =>
+          (header.getOrElse(
+             heading,
+             throw new IllegalArgumentException(s"Key '$heading' not found")),
+           value)
       }
 
     val mustBeBelowFields =
       fieldMustBeBelow.map {
-        case (heading, value) => (header(heading), value)
+        case (heading, value) =>
+          (header.getOrElse(
+             heading,
+             throw new IllegalArgumentException(s"Key '$heading' not found")),
+           value)
       }
 
     val mustBeAboveFields =
       fieldMustBeAbove.map {
-        case (heading, value) => (header(heading), value)
+        case (heading, value) =>
+          (header.getOrElse(
+             heading,
+             throw new IllegalArgumentException(s"Key '$heading' not found")),
+           value)
       }
 
     val writer = new PrintWriter(outputFile)
-    val positions = mutable.Set.empty[(String, String, Int)]
+    val positions = mutable.Set.empty[(String, String, Int, Boolean)]
     writer.println(headerLine)
-    lineIt.filter(_.nonEmpty).filter(!_.startsWith("#")).foreach { line =>
-      val values = line.split("\t")
-      val contig = values(chrIdx)
-      val pos = values(posIdx).toInt
+    lineIt.zipWithIndex
+      .filter { case (x, _) => x.nonEmpty }
+      .filter { case (x, _) => !x.startsWith("#") }
+      .foreach {
+        case (line, lineIdx) =>
+          try {
+            val values = line.split("\t")
+            val contig = values(chrIdx)
+            val pos = values(posIdx).toInt
 
-      val regionCheck = regions.forall { r =>
-        r.overlapWith(BedRecord(contig, pos, pos)).nonEmpty
+            val regionCheck = regions.forall { r =>
+              r.overlapWith(BedRecord(contig, pos, pos)).nonEmpty
+            }
+
+            lazy val mustContain =
+              fieldMustContain.forall {
+                case (idx, value) => values(idx).contains(value)
+              }
+
+            lazy val mustBeBelow = mustBeBelowFields.forall {
+              case (key, cutoff) =>
+                values(key) match {
+                  case "NA" | "unknown" => true
+                  case x =>
+                    try {
+                      x.toDouble <= cutoff
+                    } catch {
+                      case e: NumberFormatException =>
+                        logger.warn(
+                          s"Value '$x' is not a number, ignoring field '${headerValues(
+                            key)}' for line ${lineIdx + 2}, file: $inputFile")
+                        true
+                    }
+                }
+
+            }
+
+            lazy val mustBeAbove = mustBeAboveFields.forall {
+              case (key, cutoff) =>
+                values(key) match {
+                  case "NA" | "unknown" => false
+                  case x =>
+                    try {
+                      x.toDouble >= cutoff
+                    } catch {
+                      case e: NumberFormatException =>
+                        logger.warn(
+                          s"Value '$x' is not a number, ignoring field '${headerValues(
+                            key)}' for line ${lineIdx + 2}, file: $inputFile")
+                        true
+                    }
+                }
+            }
+
+            if (regionCheck && mustContain && mustBeBelow && mustBeAbove) {
+              values(genesIds).split(",").foreach { gene =>
+                val alleles = values(sampleAlleleIdx).split("/")
+                if (alleles.lift(0) == alleles.lift(1))
+                  positions.+=((gene, contig, pos, true))
+                else positions.+=((gene, contig, pos, false))
+              }
+              writer.println(line)
+            }
+          } catch {
+            case NonFatal(e) =>
+              throw new IllegalStateException(
+                s"Something did go wrong at line ${lineIdx + 2}, file: $inputFile",
+                e)
+          }
       }
 
-      val mustContain =
-        fieldMustContain.forall {
-          case (idx, value) => values(idx).contains(value)
-        }
-
-      val mustBeBelow = mustBeBelowFields.forall {
-        case (key, cutoff) =>
-          if (values(key) == "NA") true
-          else values(key).toDouble <= cutoff
-      }
-
-      val mustBeAbove = mustBeAboveFields.forall {
-        case (key, cutoff) =>
-          if (values(key) == "NA") true
-          else values(key).toDouble >= cutoff
-      }
-
-      if (regionCheck && mustContain && mustBeBelow && mustBeAbove) {
-        values(genesIds).split(",").foreach { gene =>
-          positions.+=((gene, contig, pos))
-        }
-        writer.println(line)
-      }
-    }
-
-    val geneCounts = positions.groupBy { case (gene, _, _) => gene }.map {
-      case (gene, list) => gene -> list.size
+    val geneCounts = positions.groupBy { case (gene, _, _, _) => gene }.map {
+      case (gene, list) =>
+        val c = list.groupBy { case (_, _, _, x) => x }
+        val het = c.get(false).map(_.size).getOrElse(0)
+        val hom = c.get(true).map(_.size).getOrElse(0)
+        gene -> Counts(het, hom)
     }
     val geneWriter = geneColapseOutput.map(new PrintWriter(_))
-    geneWriter.foreach(_.println("#Gene\tcounts"))
+    geneWriter.foreach(_.println("#Gene\thet\thom\ttotal"))
     geneWriter.foreach { w =>
       geneCounts.foreach {
         case (gene, count) =>
-          w.println(gene + "\t" + count)
+          w.println(
+            gene + "\t" + count.het + "\t" + count.hom + "\t" + count.total)
       }
     }
 

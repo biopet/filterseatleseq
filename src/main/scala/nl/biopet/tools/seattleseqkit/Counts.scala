@@ -19,40 +19,8 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package nl.biopet.tools.seattleseqkit.mergegenes
+package nl.biopet.tools.seattleseqkit
 
-import java.io.File
-
-import nl.biopet.utils.io.getLinesFromFile
-import nl.biopet.utils.test.tools.ToolTest
-import org.testng.annotations.Test
-
-class MergeGenesTest extends ToolTest[Args] {
-  def toolCommand: MergeGenes.type = MergeGenes
-  @Test
-  def testNoArgs(): Unit = {
-    intercept[IllegalArgumentException] {
-      MergeGenes.main(Array())
-    }
-  }
-
-  @Test
-  def testDefault(): Unit = {
-    val outputFile = File.createTempFile("test.", ".txt")
-    outputFile.deleteOnExit()
-    MergeGenes.main(
-      Array("-i",
-            "genes1=" + resourcePath("/genes1.txt"),
-            "-i",
-            "genes2=" + resourcePath("/genes2.txt"),
-            "-o",
-            outputFile.getAbsolutePath))
-    val lines = getLinesFromFile(outputFile)
-    lines.size shouldBe 4
-
-    lines(0) shouldBe "Gene\tCompound\tHom\tgenes1-het\tgenes1-hom\tgenes2-het\tgenes2-hom"
-    lines(1) shouldBe "g1\t0\t1\t1\t0\t0\t1"
-    lines(2) shouldBe "g2\t0\t1\t1\t1\t0\t0"
-    lines(3) shouldBe "g3\t0\t1\t0\t0\t1\t2"
-  }
+case class Counts(het: Int, hom: Int) {
+  def total: Int = het + hom
 }
